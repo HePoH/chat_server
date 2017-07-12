@@ -1,6 +1,8 @@
 #ifndef CORE_H
 #define CORE_H
 
+#define _DEFAULT_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <unistd.h>
 #include <pthread.h>
 #include <fcntl.h>
 #include <mqueue.h>
@@ -16,9 +19,11 @@
 #define CLIENT_QUEUE_NAME "/queue-chat-client"
 
 #define QUEUE_PERMISSIONS 0666
-#define MAX_MESSAGES  256L
-#define MAX_MSG_SIZE 256L
+#define MAX_MESSAGES  10L
+#define MAX_MSG_SIZE 256
 #define MAX_NAME_SIZE 32
+#define MAX_TIME_SIZE 64
+#define MAX_LOG_MSG_SIZE 256
 
 #define SERVER_MSG_SIZE sizeof(SERVER_MSG)
 #define CLIENT_MSG_SIZE sizeof(CLIENT_MSG)
@@ -33,6 +38,12 @@ enum CLIENT_MSG_TYPE {
 	PUBLIC,
 	PRIVATE,
 	ADM_MSG
+};
+
+enum LOG_MSG_TYPE {
+	INFO,
+	WARNING,
+	ERROR
 };
 
 typedef struct srv_msg {
@@ -61,5 +72,11 @@ typedef struct cil {
 
 void* srv_event_hndl(void* args);
 void* cln_msg_hndl(void* args);
+
+char* get_cur_dt(char* format);
+void sys_log(char* msg, int type, int fd);
+
+void make_key();
+void destructor(void* ptr);
 
 #endif
