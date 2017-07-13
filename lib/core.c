@@ -70,52 +70,48 @@ void sys_log(char* msg, int type, int fd) {
 }
 
 void* srv_event_hndl(void* args) {
-	mqd_t qd_srv;
-	struct mq_attr srv_attr;
+	int srv_qid;
+	key_t srv_key;
 	ssize_t bts_num;
 	SERVER_MSG srv_msg;
 
-	srv_attr.mq_flags = QUEUE_FLAGS;
-	srv_attr.mq_maxmsg = MAX_MESSAGES;
-	srv_attr.mq_msgsize = MAX_MSG_SIZE;
-	srv_attr.mq_curmsgs = QUEUE_CUR_MSG;
-
-	qd_srv = mq_open(SERVER_QUEUE_NAME, O_RDWR | O_CREAT, QUEUE_PERMISSIONS, &srv_attr);
-	if (qd_srv == -1) {
-		perror("Server: mq_open(server)");
+	srv_key = ftok(SERVER_KEY_FILE, PROJECT_ID);
+	if (srv_key == -1) {
+		perror("Server: ftok(server)");
 		pthread_exit((void*)EXIT_FAILURE);
 	}
 
-	int srv_pid = 1;
+	srv_qid = msgget(srv_key, IPC_CREAT | QUEUE_PERMISSIONS);
+	if (srv_qid == -1) {
+		perror("Server: msgget(server)");
+		pthread_exit((void*)EXIT_FAILURE);
+	}
+
 	while (1) {
-		bts_num = mq_receive(qd_srv, (char*)&srv_msg, MAX_MSG_SIZE, &srv_pid);
+		bts_num = msgrcv(srv_qid, (void*)&srv_msg, SERVER_MSG_SIZE, SERVER_PID, 0);
 		if (bts_num == -1) {
-			perror("Server: mq_receive(server)");
+			perror("Server: msgrcv(server)");
 			pthread_exit((void*)EXIT_FAILURE);
 		}
 
-		sys_log("Server: mq_receive(server) message received", INFO, STDOUT_FILENO);
+		sys_log("Server: msgrcv(server) message received", INFO, STDOUT_FILENO);
 		printf("Struct: SERVER_MSG { msg_type = %d, data[0] = %s, data[1] = %s, pid = %d }\n", srv_msg.msg_type, srv_msg.data_text[0], srv_msg.data_text[1], srv_msg.data_pid);
 
-		/*bts_num = mq_send(qd_srv, (char*)&srv_msg, SERVER_MSG_SIZE, srv_msg.data_pid);
-			if (bts_num == -1) {
-			perror("Server: mq_send(server)");
+		srv_msg.pid = srv_msg.data_pid;
+
+		bts_num = msgsnd(srv_qid, (void*)&srv_msg, SERVER_MSG_SIZE, 0);
+		if (bts_num == -1) {
+			perror("Server: msgsnd(server)");
 			continue;
 		}
 
-		sys_log("Server: mq_send(server) response sent to client", INFO, STDOUT_FILENO);
+		sys_log("Server: msgsnd(server) response sent to client", INFO, STDOUT_FILENO);
 		printf("Struct: SERVER_MSG { msg_type = %d, data[0] = %s, data[1] = %s, pid = %d }\n", srv_msg.msg_type, srv_msg.data_text[0], srv_msg.data_text[1], srv_msg.data_pid);
-
-		sleep(5);*/
 	}
 
-	if (mq_close(qd_srv) == -1) {
-		perror("Server: mq_close(server)");
-		pthread_exit((void*)EXIT_FAILURE);
-	}
 
-	if (mq_unlink(SERVER_QUEUE_NAME) == -1) {
-		perror("Server: mq_unlink(server)");
+	if (msgctl(srv_qid, IPC_RMID, NULL) == -1) {
+		perror("Server: msgctl(server)");
 		pthread_exit((void*)EXIT_FAILURE);
         }
 
@@ -124,26 +120,27 @@ void* srv_event_hndl(void* args) {
 }
 
 void* cln_msg_hndl(void* args) {
-	mqd_t qd_cln;
-	struct mq_attr cln_attr;
+	int cln_qid;
+	key_t cln_key;
 	ssize_t bts_num;
 	CLIENT_MSG cln_msg;
 
-	cln_attr.mq_flags = QUEUE_FLAGS;
-	cln_attr.mq_maxmsg = MAX_MESSAGES;
-	cln_attr.mq_msgsize = MAX_MSG_SIZE;
-	cln_attr.mq_curmsgs = QUEUE_CUR_MSG;
+	cln_key = ftok(CLIENT_KEY_FILE, PROJECT_ID);
+	if (cln_key == -1) {
+		perror("Server: ftok(client)");
+		pthread_exit((void*)EXIT_FAILURE);
+	}
 
-	qd_cln = mq_open(CLIENT_QUEUE_NAME, O_RDWR | O_CREAT, QUEUE_PERMISSIONS, &cln_attr);
-	if (qd_cln == -1) {
-		perror("Server: mq_open(client)");
+	cln_qid = msgget(cln_key, IPC_CREAT | QUEUE_PERMISSIONS);
+	if (cln_qid == -1) {
+		perror("Server: msgget(client)");
 		pthread_exit((void*)EXIT_FAILURE);
 	}
 
 	while (1) {
-		bts_num = mq_receive(qd_cln, (char*)&cln_msg, MAX_MSG_SIZE, NULL);
+		bts_num = msgrcv(cln_qid, (void*)&cln_msg, CLIENT_MSG_SIZE, SERVER_PID, 0);
 		if (bts_num == -1) {
-			perror("Server: mq_receive(client)");
+			perror("Server: msgrcv(client)");
 			pthread_exit((void*)EXIT_FAILURE);
 		}
 
@@ -151,26 +148,22 @@ void* cln_msg_hndl(void* args) {
 		printf("Struct: CLIENT_MSG { msg_type = %d, sender = %s [PID: %d], recipient = %s [PID: %d] }\n", cln_msg.msg_type, cln_msg.snd_name,
 		cln_msg.snd_pid, cln_msg.rcp_name, cln_msg.rcp_pid);
 
-		/*bts_num = mq_send(qd_cln, (char*)&cln_msg, CLIENT_MSG_SIZE, 0);
+
+		bts_num = msgsnd(cln_qid, (void*)&cln_msg, CLIENT_MSG_SIZE, 0);
 		if (bts_num == -1) {
-			perror("Server: mq_send(client)");
+			perror("Server: msgsnd(client)");
 			continue;
 		}
 
-		sys_log("Server: mq_send(client) response sent to client", INFO, STDOUT_FILENO);
+		sys_log("Server: msgsnd(client) response sent to client", INFO, STDOUT_FILENO);
 		printf("Struct: CLIENT_MSG { msg_type = %d, sender = %s [PID: %d], recipient = %s [PID: %d] }\n", cln_msg.msg_type, cln_msg.snd_name,
-		cln_msg.snd_pid, cln_msg.rcp_name, cln_msg.rcp_pid);*/
+		cln_msg.snd_pid, cln_msg.rcp_name, cln_msg.rcp_pid);
 	}
 
-	if (mq_close(qd_cln) == -1) {
-		perror("Server: mq_close(client)");
+	if (msgctl(cln_qid, IPC_RMID, NULL) == -1) {
+		perror("Server: msgctl(cln)");
 		pthread_exit((void*)EXIT_FAILURE);
         }
-
-	if (mq_unlink(CLIENT_QUEUE_NAME) == -1) {
-		perror("Server: mq_unlink(client)");
-		pthread_exit((void*)EXIT_FAILURE);
-	}
 
 	sys_log("Server: client thread bye", INFO, STDOUT_FILENO);
 	pthread_exit((void*)EXIT_SUCCESS);

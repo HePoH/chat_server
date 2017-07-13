@@ -1,6 +1,8 @@
 #ifndef CORE_H
 #define CORE_H
 
+#define _SVID_SOURCE
+#define _BSD_SOURCE
 #define _DEFAULT_SOURCE
 
 #include <stdio.h>
@@ -8,21 +10,17 @@
 #include <string.h>
 
 #include <sys/types.h>
-#include <sys/stat.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
 
 #include <unistd.h>
 #include <pthread.h>
 #include <fcntl.h>
-#include <mqueue.h>
 
-#define SERVER_QUEUE_NAME "/queue-chat-server-dev"
-#define CLIENT_QUEUE_NAME "/queue-chat-client-dev"
-
-#define QUEUE_FLAGS 0L
+#define SERVER_KEY_FILE "../queue/mqueue_server_key"
+#define CLIENT_KEY_FILE "../queue/mqueue_client_key"
+#define PROJECT_ID 'N'
 #define QUEUE_PERMISSIONS 0666
-#define MAX_MESSAGES 10L
-#define MAX_MSG_SIZE 8192L
-#define QUEUE_CUR_MSG 0L
 
 #define MAX_DATA_MSG 2
 #define MAX_TEXT_MSG_SIZE 256
@@ -55,6 +53,7 @@ enum LOG_MSG_TYPE {
 };
 
 typedef struct srv_msg {
+	long pid;
 	int msg_type;
 
 	char data_text[MAX_DATA_MSG][MAX_TEXT_MSG_SIZE];
@@ -62,6 +61,7 @@ typedef struct srv_msg {
 } SERVER_MSG;
 
 typedef struct cl_msg {
+	long pid;
         int msg_type;
 
         char snd_name[MAX_NAME_SIZE];
