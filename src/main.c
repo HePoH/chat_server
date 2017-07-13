@@ -6,6 +6,8 @@ int main(){
 
 	sys_log("Server start", INFO, STDOUT_FILENO);
 
+	cln_list = list_new();
+
 	pthread_create(&srv_tid, NULL, srv_event_hndl, (void*)NULL);
 	pthread_create(&cln_tid, NULL, cln_msg_hndl, (void*)NULL);
 

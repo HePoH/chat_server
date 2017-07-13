@@ -1,4 +1,5 @@
 #include "../include/core.h"
+#include "../include/list.h"
 
 pthread_key_t key;
 pthread_once_t key_once = PTHREAD_ONCE_INIT;
@@ -74,6 +75,8 @@ void* srv_event_hndl(void* args) {
 	key_t srv_key;
 	ssize_t bts_num;
 	SERVER_MSG srv_msg;
+	CLIENT_INFO* cln_info;
+	list_node_t* cln_node;
 
 	srv_key = ftok(SERVER_KEY_FILE, PROJECT_ID);
 	if (srv_key == -1) {
@@ -99,6 +102,29 @@ void* srv_event_hndl(void* args) {
 
 		switch(srv_msg.msg_type) {
 			case CONNECTED:
+					cln_info = malloc(sizeof(CLIENT_INFO));
+					if (cln_info == NULL) {
+						perror("Server: malloc(CLIENT_INFO)");
+						pthread_exit((void*)EXIT_FAILURE);
+					}
+
+					strncpy(cln_info->cln_name, srv_msg.data_text[0], MAX_NAME_SIZE);
+					cln_info->cln_pid = srv_msg.data_pid;
+
+					cln_node = list_node_new((void*)cln_info);
+					list_rpush(cln_list, cln_node);
+
+					/* ----------------------------------------------- */
+					list_node_t *node;
+					list_iterator_t *it = list_iterator_new(cln_list, LIST_HEAD);
+
+					printf("\nCLIENTS LIST:\n");
+
+					while ((node = list_iterator_next(it))) {
+						printf("Struct: CLIENT_INFO { cln_name = %s, cln_pid = %d }\n", ((CLIENT_INFO*)node->val)->cln_name, ((CLIENT_INFO*)node->val)->cln_pid);
+
+					}
+					/* ----------------------------------------------- */
 					break;
 
 			case CHANGE_NAME:
@@ -111,7 +137,7 @@ void* srv_event_hndl(void* args) {
 					break;
 		}
 
-		srv_msg.pid = srv_msg.data_pid;
+		/*srv_msg.pid = srv_msg.data_pid;
 
 		bts_num = msgsnd(srv_qid, (void*)&srv_msg, SERVER_MSG_SIZE, 0);
 		if (bts_num == -1) {
@@ -120,7 +146,7 @@ void* srv_event_hndl(void* args) {
 		}
 
 		sys_log("Server: msgsnd(server) response sent to client", INFO, STDOUT_FILENO);
-		printf("Struct: SERVER_MSG { msg_type = %d, data[0] = %s, data[1] = %s, pid = %d }\n", srv_msg.msg_type, srv_msg.data_text[0], srv_msg.data_text[1], srv_msg.data_pid);
+		printf("Struct: SERVER_MSG { msg_type = %d, data[0] = %s, data[1] = %s, pid = %d }\n", srv_msg.msg_type, srv_msg.data_text[0], srv_msg.data_text[1], srv_msg.data_pid);*/
 	}
 
 

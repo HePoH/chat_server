@@ -17,6 +17,8 @@
 #include <pthread.h>
 #include <fcntl.h>
 
+#include "list.h"
+
 #define SERVER_KEY_FILE "../queue/mqueue_server_key"
 #define CLIENT_KEY_FILE "../queue/mqueue_client_key"
 #define PROJECT_ID 'N'
@@ -74,12 +76,9 @@ typedef struct cl_msg {
 typedef struct cil {
 	char cln_name[MAX_NAME_SIZE];
 	pid_t cln_pid;
+} CLIENT_INFO;
 
-	struct cil *next;
-	struct cil *prev;
-} CLIENTS_INFO_LIST;
-
-CLIENTS_INFO_LIST* head, tail;
+list_t* cln_list;
 
 void* srv_event_hndl(void* args);
 void* cln_msg_hndl(void* args);

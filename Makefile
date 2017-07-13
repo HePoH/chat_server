@@ -9,7 +9,7 @@ CFLAGS = -std=c99 -O2 -Wall -pedantic -ansi -g
 LDFLAGS = -lrt -lpthread -lncurses -lform -lmenu
 
 SUBDIRS = lib src
-OBJECTS = core.o main.o
+OBJECTS = core.o list.o list_iterator.o list_node.o main.o
 
 all: prepare $(OBJECTS)
 		#clear
