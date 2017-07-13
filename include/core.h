@@ -79,6 +79,8 @@ typedef struct cil {
 	struct cil *prev;
 } CLIENTS_INFO_LIST;
 
+CLIENTS_INFO_LIST* head, tail;
+
 void* srv_event_hndl(void* args);
 void* cln_msg_hndl(void* args);
 

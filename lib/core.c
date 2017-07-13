@@ -8,7 +8,7 @@ void make_key() {
 
 	rtn = pthread_key_create(&key, destructor);
 	if (rtn != 0) {
-		perror("pthread_key_create");
+		perror("Server: pthread_key_create");
 		pthread_exit((void*)EXIT_FAILURE);
 	}
 }
@@ -25,7 +25,7 @@ char* get_cur_dt(char* format) {
 
 	rtn = pthread_once(&key_once, make_key);
 	if (rtn != 0) {
-		perror("pthread_once");
+		perror("Server: pthread_once");
 		pthread_exit((void*)EXIT_FAILURE);
 	}
 
@@ -35,7 +35,7 @@ char* get_cur_dt(char* format) {
 
 		rtn = pthread_setspecific(key, dt);
 		if (rtn != 0) {
-			perror("pthread_setspecific");
+			perror("Server: pthread_setspecific");
 			pthread_exit((void*)EXIT_FAILURE);
 		}
 	}
@@ -97,6 +97,20 @@ void* srv_event_hndl(void* args) {
 		sys_log("Server: msgrcv(server) message received", INFO, STDOUT_FILENO);
 		printf("Struct: SERVER_MSG { msg_type = %d, data[0] = %s, data[1] = %s, pid = %d }\n", srv_msg.msg_type, srv_msg.data_text[0], srv_msg.data_text[1], srv_msg.data_pid);
 
+		switch(srv_msg.msg_type) {
+			case CONNECTED:
+					break;
+
+			case CHANGE_NAME:
+					break;
+
+			case DISCONNECTED:
+					break;
+
+			default:
+					break;
+		}
+
 		srv_msg.pid = srv_msg.data_pid;
 
 		bts_num = msgsnd(srv_qid, (void*)&srv_msg, SERVER_MSG_SIZE, 0);
@@ -148,6 +162,19 @@ void* cln_msg_hndl(void* args) {
 		printf("Struct: CLIENT_MSG { msg_type = %d, sender = %s [PID: %d], recipient = %s [PID: %d] }\n", cln_msg.msg_type, cln_msg.snd_name,
 		cln_msg.snd_pid, cln_msg.rcp_name, cln_msg.rcp_pid);
 
+		switch(cln_msg.msg_type) {
+			case PUBLIC:
+					break;
+
+			case PRIVATE:
+					break;
+
+			case ADM_MSG:
+					break;
+
+			default:
+					break;
+		}
 
 		bts_num = msgsnd(cln_qid, (void*)&cln_msg, CLIENT_MSG_SIZE, 0);
 		if (bts_num == -1) {
