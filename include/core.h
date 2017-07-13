@@ -15,15 +15,23 @@
 #include <fcntl.h>
 #include <mqueue.h>
 
-#define SERVER_QUEUE_NAME "/queue-chat-server"
-#define CLIENT_QUEUE_NAME "/queue-chat-client"
+#define SERVER_QUEUE_NAME "/queue-chat-server-dev"
+#define CLIENT_QUEUE_NAME "/queue-chat-client-dev"
 
+#define QUEUE_FLAGS 0L
 #define QUEUE_PERMISSIONS 0666
-#define MAX_MESSAGES  10L
-#define MAX_MSG_SIZE 256
+#define MAX_MESSAGES 10L
+#define MAX_MSG_SIZE 8192L
+#define QUEUE_CUR_MSG 0L
+
+#define MAX_DATA_MSG 2
+#define MAX_TEXT_MSG_SIZE 256
+
 #define MAX_NAME_SIZE 32
 #define MAX_TIME_SIZE 64
 #define MAX_LOG_MSG_SIZE 256
+
+#define SERVER_PID 1
 
 #define SERVER_MSG_SIZE sizeof(SERVER_MSG)
 #define CLIENT_MSG_SIZE sizeof(CLIENT_MSG)
@@ -49,7 +57,8 @@ enum LOG_MSG_TYPE {
 typedef struct srv_msg {
 	int msg_type;
 
-	char data[MAX_MSG_SIZE];
+	char data_text[MAX_DATA_MSG][MAX_TEXT_MSG_SIZE];
+	pid_t data_pid;
 } SERVER_MSG;
 
 typedef struct cl_msg {

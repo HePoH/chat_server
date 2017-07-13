@@ -75,10 +75,10 @@ void* srv_event_hndl(void* args) {
 	ssize_t bts_num;
 	SERVER_MSG srv_msg;
 
-	srv_attr.mq_flags = 0L;
+	srv_attr.mq_flags = QUEUE_FLAGS;
 	srv_attr.mq_maxmsg = MAX_MESSAGES;
-	srv_attr.mq_msgsize = SERVER_MSG_SIZE;
-	srv_attr.mq_curmsgs = 0L;
+	srv_attr.mq_msgsize = MAX_MSG_SIZE;
+	srv_attr.mq_curmsgs = QUEUE_CUR_MSG;
 
 	qd_srv = mq_open(SERVER_QUEUE_NAME, O_RDWR | O_CREAT, QUEUE_PERMISSIONS, &srv_attr);
 	if (qd_srv == -1) {
@@ -86,24 +86,27 @@ void* srv_event_hndl(void* args) {
 		pthread_exit((void*)EXIT_FAILURE);
 	}
 
+	int srv_pid = 1;
 	while (1) {
-		bts_num = mq_receive(qd_srv, (char*)&srv_msg, SERVER_MSG_SIZE, NULL);
+		bts_num = mq_receive(qd_srv, (char*)&srv_msg, MAX_MSG_SIZE, &srv_pid);
 		if (bts_num == -1) {
 			perror("Server: mq_receive(server)");
 			pthread_exit((void*)EXIT_FAILURE);
 		}
 
 		sys_log("Server: mq_receive(server) message received", INFO, STDOUT_FILENO);
-		printf("Struct: SERVER_MSG { msg_type = %d, data = %s }\n", srv_msg.msg_type, srv_msg.data);
+		printf("Struct: SERVER_MSG { msg_type = %d, data[0] = %s, data[1] = %s, pid = %d }\n", srv_msg.msg_type, srv_msg.data_text[0], srv_msg.data_text[1], srv_msg.data_pid);
 
-		/*bts_num = mq_send(qd_srv, (char*)&srv_msg, SERVER_MSG_SIZE, 0);
-		if (bts_num == -1) {
+		/*bts_num = mq_send(qd_srv, (char*)&srv_msg, SERVER_MSG_SIZE, srv_msg.data_pid);
+			if (bts_num == -1) {
 			perror("Server: mq_send(server)");
 			continue;
 		}
 
 		sys_log("Server: mq_send(server) response sent to client", INFO, STDOUT_FILENO);
-		printf("Struct: SERVER_MSG { msg_type = %d, data = %s }\n", srv_msg.msg_type, srv_msg.data);*/
+		printf("Struct: SERVER_MSG { msg_type = %d, data[0] = %s, data[1] = %s, pid = %d }\n", srv_msg.msg_type, srv_msg.data_text[0], srv_msg.data_text[1], srv_msg.data_pid);
+
+		sleep(5);*/
 	}
 
 	if (mq_close(qd_srv) == -1) {
@@ -126,10 +129,10 @@ void* cln_msg_hndl(void* args) {
 	ssize_t bts_num;
 	CLIENT_MSG cln_msg;
 
-	cln_attr.mq_flags = 0L;
+	cln_attr.mq_flags = QUEUE_FLAGS;
 	cln_attr.mq_maxmsg = MAX_MESSAGES;
-	cln_attr.mq_msgsize = CLIENT_MSG_SIZE;
-	cln_attr.mq_curmsgs = 0L;
+	cln_attr.mq_msgsize = MAX_MSG_SIZE;
+	cln_attr.mq_curmsgs = QUEUE_CUR_MSG;
 
 	qd_cln = mq_open(CLIENT_QUEUE_NAME, O_RDWR | O_CREAT, QUEUE_PERMISSIONS, &cln_attr);
 	if (qd_cln == -1) {
@@ -138,7 +141,7 @@ void* cln_msg_hndl(void* args) {
 	}
 
 	while (1) {
-		bts_num = mq_receive(qd_cln, (char*)&cln_msg, CLIENT_MSG_SIZE, NULL);
+		bts_num = mq_receive(qd_cln, (char*)&cln_msg, MAX_MSG_SIZE, NULL);
 		if (bts_num == -1) {
 			perror("Server: mq_receive(client)");
 			pthread_exit((void*)EXIT_FAILURE);
